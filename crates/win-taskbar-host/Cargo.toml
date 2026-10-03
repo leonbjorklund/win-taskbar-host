@@ -1,0 +1,21 @@
+[package]
+name = "win-taskbar-host"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Host native content inside the Windows 11 primary taskbar"
+license = "MIT"
+repository = "https://github.com/leonbjorklund/win-taskbar-host"
+publish = false
+
+[dependencies]
+windows-sys = { version = "0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_LibraryLoader",
+    "Win32_UI_Accessibility",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }

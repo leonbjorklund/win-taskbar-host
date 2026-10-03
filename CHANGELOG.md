@@ -1,0 +1,9 @@
+# Changelog
+
+## v0.1.0
+
+First release.
+
+- Puts your window in the Windows 11 taskbar, centered in its height. Right-click opens a menu with your items and Move, or your own menu.
+- Handles Explorer restarts, DPI, layout and auto-hide changes.
+- Rust crate, C/C++ DLL with header, C# package for WPF. x64, primary horizontal taskbar only.

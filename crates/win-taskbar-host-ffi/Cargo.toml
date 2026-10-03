@@ -1,0 +1,15 @@
+[package]
+name = "win-taskbar-host-ffi"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/leonbjorklund/win-taskbar-host"
+publish = false
+
+[lib]
+name = "win_taskbar_host"
+crate-type = ["cdylib"]
+doc = false
+
+[dependencies]
+win-taskbar-host = { path = "../win-taskbar-host" }
+windows-sys = { version = "0.61.2", features = ["Win32_UI_WindowsAndMessaging"] }

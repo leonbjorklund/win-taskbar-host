@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\bindings\csharp\WinTaskbarHost.csproj" />
+    <!-- Built by `just build-dll`. -->
+    <None Include="..\..\target\x86_64-pc-windows-msvc\release\win_taskbar_host.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" Condition="Exists('..\..\target\x86_64-pc-windows-msvc\release\win_taskbar_host.dll')" />
+  </ItemGroup>
+</Project>

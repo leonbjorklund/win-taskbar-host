@@ -1,0 +1,125 @@
+name: Check and release
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  build:
+    name: Check and package Windows x64
+    runs-on: windows-2025
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate release version and notes
+        id: release
+        run: |
+          $version = (Select-String -LiteralPath crates/win-taskbar-host/Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Expected a stable major.minor.patch version.' }
+          $tag = "v$version"
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -cne $tag) { throw "Tag must match the crate version: $tag" }
+          $sections = @((Get-Content -Raw CHANGELOG.md) -split '(?m)^## ' | Where-Object { $_ -match ('^' + [regex]::Escape($tag) + '\r?\n') })
+          if ($sections.Count -ne 1) { throw "CHANGELOG.md must contain exactly one ## $tag section." }
+          $notes = ($sections[0] -replace '^[^\n]*\n', '').Trim()
+          if (-not $notes) { throw 'Release notes cannot be empty.' }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Set-Content -LiteralPath dist/release-notes.md -Value $notes
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set up Rust and just
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          rustup default stable
+          rustup component add rustfmt clippy rust-docs
+          $archive = Join-Path $env:RUNNER_TEMP just.zip
+          Invoke-WebRequest https://github.com/casey/just/releases/download/1.58.0/just-1.58.0-x86_64-pc-windows-msvc.zip -OutFile $archive
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne '759f16fb7aa17c5c8b9594b6d4a8c1a6630dfd042cf2b3ff84841454d3d188dc') { throw 'just checksum mismatch.' }
+          $bin = Join-Path $env:RUNNER_TEMP just
+          Expand-Archive -LiteralPath $archive -DestinationPath $bin
+          $bin >> $env:GITHUB_PATH
+
+      - name: Check
+        run: just check
+
+      - name: Check API documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps --locked
+
+      - name: Build release packages
+        run: just dist
+
+      - name: Generate checksums
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          $files = @("dist/win-taskbar-host-$env:VERSION-x64.zip", "dist/WinTaskbarHost.$env:VERSION.nupkg")
+          $files | ForEach-Object {
+            $hash = Get-FileHash -LiteralPath $_ -Algorithm SHA256
+            '{0}  {1}' -f $hash.Hash.ToLowerInvariant(), (Split-Path -Leaf $_)
+          } | Set-Content -LiteralPath dist/SHA256SUMS -Encoding utf8NoBOM
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-packages
+          path: |
+            dist/win-taskbar-host-${{ steps.release.outputs.version }}-x64.zip
+            dist/WinTaskbarHost.${{ steps.release.outputs.version }}.nupkg
+            dist/SHA256SUMS
+            dist/release-notes.md
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish GitHub release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-packages
+          path: dist
+
+      - name: Publish complete release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          $tag = "v$env:VERSION"
+          $assets = @("dist/win-taskbar-host-$env:VERSION-x64.zip", "dist/WinTaskbarHost.$env:VERSION.nupkg", 'dist/SHA256SUMS')
+          $draft = gh release view $tag --json isDraft --jq '.isDraft' 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if ($draft -ne 'true') { throw "Release $tag is already published. Use a new version." }
+            gh release upload $tag @assets --clobber
+          } else {
+            gh release create $tag @assets --verify-tag --draft --title $tag --notes-file dist/release-notes.md
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed.' }
+          gh release edit $tag --draft=false --latest --notes-file dist/release-notes.md

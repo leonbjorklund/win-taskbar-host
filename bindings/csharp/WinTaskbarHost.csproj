@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+    <Description>Shows WPF content inside the Windows 11 taskbar.</Description>
+    <Authors>Leon Björklund</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/leonbjorklund/win-taskbar-host</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
+    <PackageOutputPath>..\..\dist</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\target\x86_64-pc-windows-msvc\release\win_taskbar_host.dll" Pack="true" PackagePath="runtimes/win-x64/native/" Visible="false" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="" Visible="false" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="" Visible="false" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="" Visible="false" />
+    <None Include="..\..\target\RUST-STDLIB-NOTICES.html" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+</Project>
