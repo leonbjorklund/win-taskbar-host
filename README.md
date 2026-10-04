@@ -12,7 +12,7 @@ for taskbar handling with the binding that fits this app.
 ## Rust
 
 ```toml
-win-taskbar-host = { git = "https://github.com/leonbjorklund/win-taskbar-host", tag = "v0.1.0" }
+win-taskbar-host = { git = "https://github.com/leonbjorklund/win-taskbar-host", tag = "v0.2.0" }
 ```
 
 ```rust
@@ -27,7 +27,7 @@ host.set_position(0.25);
 
 ## C# / WPF
 
-[NuGet package](https://github.com/leonbjorklund/win-taskbar-host/releases/download/v0.1.0/WinTaskbarHost.0.1.0.nupkg)
+[NuGet package](https://github.com/leonbjorklund/win-taskbar-host/releases/download/v0.2.0/WinTaskbarHost.0.2.0.nupkg)
 
 ```csharp
 using WinTaskbarHost;
@@ -38,7 +38,7 @@ host.Position = 0.25;
 
 ## C / C++
 
-[Native package](https://github.com/leonbjorklund/win-taskbar-host/releases/download/v0.1.0/win-taskbar-host-0.1.0-x64.zip)
+[Native package](https://github.com/leonbjorklund/win-taskbar-host/releases/download/v0.2.0/win-taskbar-host-0.2.0-x64.zip)
 
 ```c
 wth_options options = {0};
