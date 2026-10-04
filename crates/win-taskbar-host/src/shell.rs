@@ -82,21 +82,27 @@ pub(crate) struct Layout {
     pub height: i32,
     /// `x` ranges over `0..=travel`.
     pub travel: i32,
+    /// The room a normalized position is measured over: the taskbar beside the
+    /// width the host was built with. It equals `travel` until the width changes.
+    pub span: i32,
     pub dpi: u32,
 }
 
 impl Layout {
     /// Places content of the requested DIP size at a normalized position along
-    /// the taskbar, centered vertically. `None` if it does not fit, or the
-    /// taskbar is vertical.
+    /// the taskbar, centered vertically. The position is measured against
+    /// `built_width_dip`, so changing `width_dip` keeps the leading edge where
+    /// it is. `None` if it does not fit, or the taskbar is vertical.
     pub fn compute(
         geometry: &Geometry,
         width_dip: f64,
+        built_width_dip: f64,
         height_dip: Option<f64>,
         position: f64,
     ) -> Option<Self> {
         let scale = geometry.dpi as f64 / 96.0;
         let width = (width_dip * scale).round() as i32;
+        let built_width = (built_width_dip * scale).round() as i32;
         let height = match height_dip {
             Some(h) => (h * scale).round() as i32,
             None => geometry.height - 2 * (INSET_DIP * scale).round() as i32,
@@ -109,22 +115,24 @@ impl Layout {
         {
             return None;
         }
-        let travel = geometry.width - width;
+        let span = (geometry.width - built_width).max(0);
+        let travel = span.min(geometry.width - width);
         // Center in the area beside the border, like the taskbar's icons, with any odd pixel above.
         let border = (BORDER_DIP * scale).round() as i32 * if geometry.top { -1 } else { 1 };
         Some(Self {
-            x: (position.clamp(0.0, 1.0) * travel as f64).round() as i32,
+            x: ((position.clamp(0.0, 1.0) * span as f64).round() as i32).min(travel),
             y: ((geometry.height - height + border + 1) / 2).clamp(0, geometry.height - height),
             width,
             height,
             travel,
+            span,
             dpi: geometry.dpi,
         })
     }
 
     /// Normalized position for a horizontal offset in pixels.
     pub fn position_of(&self, x: i32) -> f64 {
-        x.clamp(0, self.travel) as f64 / self.travel.max(1) as f64
+        x.clamp(0, self.travel) as f64 / self.span.max(1) as f64
     }
 }
 
@@ -144,26 +152,41 @@ mod tests {
 
     #[test]
     fn scales_centers_and_positions_along_the_taskbar() {
-        let layout = Layout::compute(&bar(3840, 72, 144), 160.0, None, 0.25).unwrap();
+        let layout = Layout::compute(&bar(3840, 72, 144), 160.0, 160.0, None, 0.25).unwrap();
         assert_eq!((layout.width, layout.height), (240, 60));
         assert_eq!(layout.y, 7);
-        assert_eq!(layout.travel, 3600);
+        assert_eq!((layout.travel, layout.span), (3600, 3600));
         assert_eq!(layout.x, 900);
         assert_eq!(layout.position_of(layout.x), 0.25);
     }
 
     #[test]
     fn clamps_position_and_offsets_to_the_taskbar() {
-        let layout = |p| Layout::compute(&bar(1920, 48, 96), 160.0, Some(32.0), p).unwrap();
+        let layout = |p| Layout::compute(&bar(1920, 48, 96), 160.0, 160.0, Some(32.0), p).unwrap();
         assert_eq!((layout(7.0).x, layout(-1.0).x), (1760, 0));
         let layout = layout(0.5);
         assert_eq!((layout.position_of(-50), layout.position_of(99_999)), (0.0, 1.0));
     }
 
     #[test]
+    fn resizing_keeps_the_leading_edge() {
+        let layout = |width| Layout::compute(&bar(1920, 48, 96), width, 160.0, None, 0.25).unwrap();
+        let built = layout(160.0);
+        assert_eq!(built.x, 440);
+        // Narrower or wider, the content starts in the same place and drags to the same position.
+        for width in [30.0, 300.0] {
+            assert_eq!(layout(width).x, built.x);
+            assert_eq!(layout(width).position_of(built.x), 0.25);
+        }
+        // Content at the trailing edge never hangs off the taskbar.
+        let wide = Layout::compute(&bar(1920, 48, 96), 300.0, 160.0, None, 1.0).unwrap();
+        assert_eq!((wide.x, wide.travel), (1620, 1620));
+    }
+
+    #[test]
     fn reports_content_that_cannot_fit() {
-        assert!(Layout::compute(&bar(1920, 48, 96), 2000.0, None, 0.0).is_none());
-        assert!(Layout::compute(&bar(1920, 48, 96), 100.0, Some(60.0), 0.0).is_none());
-        assert!(Layout::compute(&bar(48, 1920, 96), 40.0, None, 0.0).is_none());
+        assert!(Layout::compute(&bar(1920, 48, 96), 2000.0, 2000.0, None, 0.0).is_none());
+        assert!(Layout::compute(&bar(1920, 48, 96), 100.0, 100.0, Some(60.0), 0.0).is_none());
+        assert!(Layout::compute(&bar(48, 1920, 96), 40.0, 40.0, None, 0.0).is_none());
     }
 }

@@ -65,6 +65,8 @@ enum Move {
 pub(crate) struct Inner {
     me: Weak<Inner>,
     width_dip: Cell<f64>,
+    /// The width the host was built with. Positions are measured against it.
+    built_width_dip: f64,
     height_dip: Option<f64>,
     store: Option<PathBuf>,
     /// The creating thread's DPI awareness, restored for menu actions.
@@ -127,6 +129,7 @@ impl Inner {
         let inner = Rc::new_cyclic(|me| Self {
             me: me.clone(),
             width_dip: Cell::new(builder.width_dip),
+            built_width_dip: builder.width_dip,
             height_dip: builder.height_dip,
             store,
             app_dpi,
@@ -394,7 +397,8 @@ impl Inner {
     }
 
     fn layout_for(&self, geometry: &Geometry) -> Option<Layout> {
-        Layout::compute(geometry, self.width_dip.get(), self.height_dip, self.position.get())
+        let (width, built) = (self.width_dip.get(), self.built_width_dip);
+        Layout::compute(geometry, width, built, self.height_dip, self.position.get())
     }
 
     fn surface(&self, layout: &Layout) -> Surface {
@@ -918,7 +922,15 @@ mod tests {
             Box::new(|_| unreachable!("this test does not pump attachment work")),
         )
         .unwrap();
-        inner.layout.set(Some(Layout { x: 0, y: 0, width: 40, height: 40, travel: 100, dpi: 96 }));
+        inner.layout.set(Some(Layout {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 40,
+            travel: 100,
+            span: 100,
+            dpi: 96,
+        }));
         inner.moving.set(Move::Dragging(0, 50));
         inner.end_move(true);
         assert_eq!((inner.position.get(), inner.need_save.get()), (0.5, true));

@@ -34,6 +34,7 @@ public sealed unsafe partial class TaskbarHost : IDisposable
     /// <summary>Creates a host on the current dispatcher thread. It shows <paramref name="view"/> in a new child
     /// window each time it attaches, including after Explorer restarts. A <c>ContextMenu</c> on the view replaces the
     /// built-in menu; call <see cref="BeginMove"/> from its item.</summary>
+    /// <param name="widthDip">The widest width you will use. Positions are measured against it.</param>
     /// <param name="heightDip">0 fills the taskbar height minus 4 DIPs at the top and bottom.</param>
     /// <param name="savePlacementAs">Keeps placement in %LOCALAPPDATA%\win-taskbar-host\&lt;key&gt;.placement.</param>
     /// <param name="menuItems">Items above Move in the built-in right-click menu. <c>&amp;</c> marks the access key.</param>
@@ -107,6 +108,9 @@ public sealed unsafe partial class TaskbarHost : IDisposable
     /// foreground for the drag.</summary>
     public void BeginMove() => Check(wth_begin_move(Live));
 
+    /// <summary>Changes the content width. The leading edge stays where it is, unless wider content would leave the
+    /// taskbar. Move cannot take narrower content closer to the trailing edge than the width given to
+    /// <see cref="Create"/> allows.</summary>
     public void SetWidth(double widthDip) => Check(wth_set_width(Live, widthDip));
 
     /// <summary>Closes the host. No menu action runs after it returns. You may call it inside menu actions.</summary>

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Changing the width keeps the content's leading edge where it is. Positions are measured against the width the host was built with, so build with the widest width you will use. Content that never changes width behaves as before.
+
 ## v0.1.0
 
 First release.

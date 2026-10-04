@@ -167,7 +167,9 @@ pub struct TaskbarHost {
 
 impl TaskbarHost {
     /// Starts configuring a host whose content is `width_dip` wide. A DIP is
-    /// one physical pixel at 100% scaling.
+    /// one physical pixel at 100% scaling. Positions are measured against this
+    /// width, so pass the widest content you will show and shrink it with
+    /// [`TaskbarHost::set_width_dip`].
     pub fn builder(width_dip: f64) -> Builder {
         Builder { width_dip, height_dip: None, key: None, menu: Vec::new(), context_menu: None }
     }
@@ -197,7 +199,9 @@ impl TaskbarHost {
         self.inner.begin_move()
     }
 
-    /// Changes the content width in DIPs.
+    /// Changes the content width in DIPs. The leading edge stays where it is,
+    /// unless a wider content would leave the taskbar. Move cannot take narrower
+    /// content closer to the trailing edge than the builder's width allows.
     pub fn set_width_dip(&self, width: f64) -> Result<(), String> {
         self.inner.set_width(width)
     }

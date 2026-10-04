@@ -66,7 +66,7 @@ typedef void (*wth_menu_fn)(void *context, uint32_t index);
 typedef void (*wth_context_menu_fn)(void *context, void *owner, int32_t x, int32_t y);
 
 typedef struct wth_options {
-    double width_dip;                /* required, 0 < width_dip <= 10000 */
+    double width_dip;                /* required, 0 < width_dip <= 10000; the widest you will use, positions are measured against it */
     double height_dip;               /* 0 fills the taskbar height minus 4 DIP at each edge */
     const char *placement_key;       /* NULL, or keeps placement in %LOCALAPPDATA%\win-taskbar-host\<key>.placement */
     const char *const *menu_labels;  /* items above Move, & marks the access key and && shows one */
@@ -95,6 +95,9 @@ int32_t wth_set_position(wth_host *host, double position);
 /* Starts Move as if chosen from the built-in menu. Call it from on_context_menu
  * or a click handler, so the host may take the foreground for the drag. */
 int32_t wth_begin_move(wth_host *host);
+/* Changes the content width. The leading edge stays where it is, unless wider
+ * content would leave the taskbar. Move cannot take narrower content closer to
+ * the trailing edge than the width given to wth_create allows. */
 int32_t wth_set_width(wth_host *host, double width_dip);
 /* This thread's last failure message, valid until its next failure. */
 const char *wth_last_error(void);
