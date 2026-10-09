@@ -17,8 +17,9 @@ Windows 11 x64, Explorer's primary horizontal taskbar. Rendering and app data st
 ## Checks and releases
 
 - Run `just check` on Windows. It excludes the interactive desktop tests.
-- Ask before running `just test-desktop`, [acceptance.ps1](tools/acceptance.ps1) or [restart-explorer.ps1](tools/restart-explorer.ps1). They control the real desktop.
-- For build and packaging commands, use the [justfile](justfile). For CI and releases, use the [workflow](.github/workflows/release.yml); version-tag pushes publish releases after checks pass.
+- Ask before running `just test-desktop`, [acceptance.ps1](tools/acceptance.ps1), [restart-explorer.ps1](tools/restart-explorer.ps1) or [Driver](tools/Driver/). They control the real desktop.
+- For CI and releases, use the [workflow](.github/workflows/release.yml); version-tag pushes publish releases after checks pass.
+- Release tags must be `v` plus the `version` in [Cargo.toml](crates/win-taskbar-host/Cargo.toml), and the matching `## vX.Y.Z` section of [CHANGELOG.md](CHANGELOG.md) becomes the release notes.
 
 ## Contracts
 
